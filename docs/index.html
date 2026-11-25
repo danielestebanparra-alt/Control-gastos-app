@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mis Finanzas</title>
+  <meta name="description" content="Control de gastos e ingresos personal">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Finanzas">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="icon-btn" id="mesAnterior" aria-label="Mes anterior">‹</button>
+    <div class="mes-actual" id="mesActual">—</div>
+    <button class="icon-btn" id="mesSiguiente" aria-label="Mes siguiente">›</button>
+  </header>
+
+  <main>
+    <!-- INICIO -->
+    <section class="vista activa" id="vista-inicio">
+      <div class="card balance-card" id="balanceCard">
+        <div class="balance-top">
+          <span class="etiqueta">Balance del mes</span>
+          <button class="ojo" id="btnOjo" aria-label="Ocultar o mostrar montos">👁️</button>
+        </div>
+        <div class="balance-monto privado" id="balanceMonto">$0</div>
+        <div class="estado" id="estadoMes">—</div>
+        <div class="barra"><div class="barra-relleno" id="barraGasto"></div></div>
+        <div class="barra-texto" id="barraTexto">—</div>
+        <div class="dos-col">
+          <div><span class="punto verde"></span> Ingresos<br><b class="privado" id="totalIngresos">$0</b></div>
+          <div><span class="punto rojo"></span> Gastos<br><b class="privado" id="totalGastos">$0</b></div>
+        </div>
+      </div>
+
+      <div class="card" id="proyeccionCard">
+        <h3>Proyección a fin de mes</h3>
+        <p class="sub">Incluye tus ingresos y gastos fijos que faltan por llegar este mes.</p>
+        <div class="proyeccion privado" id="proyeccion">$0</div>
+        <div class="sub" id="proyeccionDetalle"></div>
+      </div>
+
+      <div id="alertas"></div>
+
+      <div class="card">
+        <div class="fila-titulo">
+          <h3>Últimos movimientos</h3>
+          <button class="link" data-ir="movimientos">Ver todos</button>
+        </div>
+        <ul class="lista" id="ultimos"></ul>
+      </div>
+    </section>
+
+    <!-- MOVIMIENTOS -->
+    <section class="vista" id="vista-movimientos">
+      <input type="search" id="buscar" class="buscar" placeholder="🔎 Buscar por categoría o nota">
+      <div class="chips" id="filtroTipo">
+        <button class="chip activo" data-f="todos">Todos</button>
+        <button class="chip" data-f="gasto">Gastos</button>
+        <button class="chip" data-f="ingreso">Ingresos</button>
+      </div>
+      <div id="listaMovimientos"></div>
+    </section>
+
+    <!-- GRÁFICAS -->
+    <section class="vista" id="vista-graficas">
+      <div class="card">
+        <h3>Ingresos vs gastos (últimos 6 meses)</h3>
+        <div class="grafica"><canvas id="gMeses"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>¿En qué se va mi dinero este mes?</h3>
+        <div class="grafica"><canvas id="gCategorias"></canvas></div>
+        <ul class="lista compacta" id="topCategorias"></ul>
+      </div>
+      <div class="card">
+        <h3>Saldo día a día</h3>
+        <p class="sub">Si la línea baja de cero, ese día estabas en déficit.</p>
+        <div class="grafica"><canvas id="gSaldo"></canvas></div>
+      </div>
+    </section>
+
+    <!-- FIJOS -->
+    <section class="vista" id="vista-fijos">
+      <div class="card">
+        <h3>Ingresos y gastos fijos</h3>
+        <p class="sub">Tu salario, arriendo, servicios, suscripciones… Se anotan solos cada mes en el día que elijas.</p>
+        <button class="boton" id="btnNuevoFijo">+ Agregar fijo</button>
+      </div>
+      <div id="listaFijos"></div>
+    </section>
+
+    <!-- AJUSTES -->
+    <section class="vista" id="vista-ajustes">
+      <div class="card">
+        <h3>📄 Extracto en PDF</h3>
+        <p class="sub">Descarga un resumen con todos tus movimientos.</p>
+        <label class="campo">Desde<input type="date" id="pdfDesde"></label>
+        <label class="campo">Hasta<input type="date" id="pdfHasta"></label>
+        <button class="boton" id="btnPdf">Generar extracto</button>
+      </div>
+
+      <div class="card">
+        <h3>🎯 Presupuesto por categoría</h3>
+        <p class="sub">Pon un límite mensual y te aviso cuando te acerques. Déjalo vacío si no quieres límite.</p>
+        <div id="listaPresupuestos"></div>
+      </div>
+
+      <div class="card">
+        <h3>🎨 Apariencia</h3>
+        <div class="chips" id="temaChips">
+          <button class="chip" data-tema="auto">Automático</button>
+          <button class="chip" data-tema="claro">Claro</button>
+          <button class="chip" data-tema="oscuro">Oscuro</button>
+        </div>
+        <label class="fila-switch">Ocultar montos al abrir
+          <input type="checkbox" id="ocultarAlAbrir">
+        </label>
+      </div>
+
+      <div class="card">
+        <h3>💾 Copia de seguridad</h3>
+        <p class="sub">Tus datos viven solo en este celular. Guarda una copia de vez en cuando (por ejemplo en iCloud Drive).</p>
+        <button class="boton secundario" id="btnExportar">Guardar copia</button>
+        <label class="boton secundario" for="archivoImportar">Restaurar copia</label>
+        <input type="file" id="archivoImportar" accept="application/json,.json" hidden>
+      </div>
+
+      <div class="card">
+        <h3>📲 Instalar en el iPhone</h3>
+        <ol class="pasos">
+          <li>Abre esta página en <b>Safari</b>.</li>
+          <li>Toca el botón <b>Compartir</b> (cuadro con flecha hacia arriba).</li>
+          <li>Elige <b>Agregar a pantalla de inicio</b> y luego <b>Agregar</b>.</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <button class="boton peligro" id="btnBorrarTodo">Borrar todos los datos</button>
+      </div>
+      <p class="version">Mis Finanzas · versión 1.0</p>
+    </section>
+  </main>
+
+  <button class="fab" id="fab" aria-label="Agregar movimiento">+</button>
+
+  <nav class="tabbar">
+    <button class="tab activa" data-ir="inicio"><span>🏠</span>Inicio</button>
+    <button class="tab" data-ir="movimientos"><span>📋</span>Movimientos</button>
+    <button class="tab" data-ir="graficas"><span>📊</span>Gráficas</button>
+    <button class="tab" data-ir="fijos"><span>🔁</span>Fijos</button>
+    <button class="tab" data-ir="ajustes"><span>⚙️</span>Más</button>
+  </nav>
+
+  <!-- Hoja para agregar / editar movimiento -->
+  <div class="fondo" id="fondo"></div>
+  <div class="hoja" id="hojaMov" role="dialog" aria-modal="true" aria-labelledby="hojaMovTitulo">
+    <div class="agarre"></div>
+    <div class="hoja-cabeza"><h2 id="hojaMovTitulo">Nuevo movimiento</h2><button class="cerrar" data-cerrar aria-label="Cerrar">✕</button></div>
+    <div class="segmento" id="segTipo">
+      <button data-tipo="gasto" class="activo">Gasto</button>
+      <button data-tipo="ingreso">Ingreso</button>
+    </div>
+    <div class="monto-grande">
+      <span>$</span><input id="movMonto" type="text" inputmode="numeric" placeholder="0" autocomplete="off">
+    </div>
+    <div class="cats" id="movCats"></div>
+    <label class="campo">Fecha<input type="date" id="movFecha"></label>
+    <label class="campo">Nota (opcional)<input type="text" id="movNota" maxlength="80" placeholder="Ej: almuerzo con amigos"></label>
+    <label class="fila-switch" id="filaRepetir">Repetir cada mes
+      <input type="checkbox" id="movRepetir">
+    </label>
+    <div class="acciones">
+      <button class="boton peligro" id="movEliminar" hidden>Eliminar</button>
+      <button class="boton" id="movGuardar">Guardar</button>
+    </div>
+  </div>
+
+  <!-- Hoja para agregar / editar fijo -->
+  <div class="hoja" id="hojaFijo" role="dialog" aria-modal="true" aria-labelledby="hojaFijoTitulo">
+    <div class="agarre"></div>
+    <div class="hoja-cabeza"><h2 id="hojaFijoTitulo">Nuevo fijo</h2><button class="cerrar" data-cerrar aria-label="Cerrar">✕</button></div>
+    <div class="segmento" id="segTipoFijo">
+      <button data-tipo="gasto" class="activo">Gasto fijo</button>
+      <button data-tipo="ingreso">Ingreso fijo</button>
+    </div>
+    <label class="campo">Nombre<input type="text" id="fijoNombre" maxlength="40" placeholder="Ej: Arriendo, Salario, Netflix"></label>
+    <div class="monto-grande">
+      <span>$</span><input id="fijoMonto" type="text" inputmode="numeric" placeholder="0" autocomplete="off">
+    </div>
+    <div class="cats" id="fijoCats"></div>
+    <label class="campo">Día del mes en que llega o se paga<input type="number" id="fijoDia" min="1" max="31" inputmode="numeric" value="1"></label>
+    <div class="acciones">
+      <button class="boton peligro" id="fijoEliminar" hidden>Eliminar</button>
+      <button class="boton" id="fijoGuardar">Guardar</button>
+    </div>
+  </div>
+
+  <div class="aviso" id="aviso" role="status"></div>
+
+  <script src="lib/chart.min.js"></script>
+  <script src="lib/jspdf.min.js"></script>
+  <script src="lib/autotable.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

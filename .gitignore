@@ -1,0 +1,20 @@
+# Archivos que NO se suben a GitHub
+
+# Base de datos con movimientos (puede tener datos personales)
+gastos.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Dependencias de Node (pesan mucho y se reinstalan con npm install)
+node_modules/
+
+# Copias de seguridad exportadas desde la app
+mis-finanzas-copia-*.json
+
+# Archivos de sistema y configuraciones privadas
+.env
+.env.*
+Thumbs.db
+desktop.ini
+.DS_Store
