@@ -1,12 +1,12 @@
-/* Mis Finanzas 1.1 — todo se guarda en este dispositivo (localStorage).
+/* Mis Finanzas 1.1.1 — todo se guarda en este dispositivo (localStorage).
    Ningún dato financiero se envía a servidores: no hay fetch, XHR ni servicios externos. */
 'use strict';
 
-const VERSION_APP = '1.1';
+const VERSION_APP = '1.1.1';
 const $ = id => document.getElementById(id);
 
 // Si el HTML guardado en caché es de una versión anterior, recargar una vez para traer la nueva.
-if (!$('repChips')) {
+if (!$('repChips') || !$('confFecha')) {
   try {
     if (!sessionStorage.getItem('mf.recarga')) { sessionStorage.setItem('mf.recarga', '1'); location.reload(); }
   } catch (e) { /* sin sessionStorage */ }
@@ -151,8 +151,9 @@ function normalizar(d) {
   r.movs.forEach(m => asegurar(m.tipo, m.cat));
   r.fijos.forEach(f => asegurar(f.tipo, f.cat));
   Object.keys(r.presupuestos).forEach(c => asegurar('gasto', c));
-  // Migración: en versiones anteriores un movimiento con fecha futura contaba como realizado.
-  if (versionPrevia < 3) { const hoy = hoyISO(); r.movs.forEach(m => { if (m.fecha > hoy) m.pendiente = true; }); }
+  // Un movimiento con fecha futura nunca puede figurar como realizado (migración de 1.0 y copias restauradas).
+  { const hoy = hoyISO(); r.movs.forEach(m => { if (m.fecha > hoy) m.pendiente = true; }); }
+  r.movs.forEach(m => { if (m.fijoMes !== undefined && !esMes(m.fijoMes)) delete m.fijoMes; });
   r.version = VERSION_DATOS;
   return r;
 }
@@ -208,8 +209,11 @@ const pct = (a, b) => b > 0 ? Math.round(a / b * 100) : 0;
 const sinTildes = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 // ---------- Recurrentes: se registran solos cada mes ----------
+// Si el almacenamiento falla, se deshace todo lo generado para no mostrar registros que no quedaron guardados.
 function generarFijos() {
+  if (errorCarga) return false;
   const hoy = hoyISO(), mesHoy = mesDe(hoy), diaHoy = Number(hoy.slice(8));
+  const antes = JSON.stringify(datos);
   let cambios = false;
   for (const f of datos.fijos) {
     if (!f.activo || !esMes(f.desde)) continue;
@@ -219,15 +223,18 @@ function generarFijos() {
       const [y, m] = ym.split('-').map(Number);
       const dia = Math.min(f.dia, diasEnMes(y, m));
       if (ym === mesHoy && dia > diaHoy) continue; // todavía no llega
-      const mov = { id: nuevoId(), tipo: f.tipo, monto: f.monto, cat: f.cat, fecha: `${ym}-${pad(dia)}`, nota: f.nombre, fijoId: f.id };
+      const mov = { id: nuevoId(), tipo: f.tipo, monto: f.monto, cat: f.cat, fecha: `${ym}-${pad(dia)}`, nota: f.nombre, fijoId: f.id, fijoMes: ym };
       if (datos.ajustes.confirmarRecurrentes) mov.pendiente = true;
       datos.movs.push(mov);
       datos.generados[clave] = true;
       cambios = true;
     }
   }
-  if (cambios) guardar();
+  if (cambios && !guardar()) { datos = JSON.parse(antes); return false; }
+  return true;
 }
+// Movimiento que generó un recurrente en un mes (aunque se haya confirmado con otra fecha).
+const movDeFijo = (f, ym) => datos.movs.find(m => m.fijoId === f.id && (m.fijoMes || mesDe(m.fecha)) === ym);
 
 // ---------- Saldos ----------
 const valorNeto = m => m.tipo === 'ingreso' ? m.monto : -m.monto;
@@ -276,7 +283,7 @@ let vista = 'inicio';
 let panelMov = 'lista';
 let diaSel = hoyISO();
 const periodoInicial = () => ({ periodo: 'mes', fecha: hoyISO(), desde: '', hasta: '', semana: hoyISO(), quincena: 0, anio: Number(hoyISO().slice(0, 4)) });
-const filtroInicial = () => Object.assign(periodoInicial(), { tipo: 'todos', cat: '', estado: '', q: '', historial: true });
+const filtroInicial = () => Object.assign(periodoInicial(), { tipo: 'todos', cat: '', estado: '', q: '', historial: false });
 let filtro = filtroInicial();
 let rep = Object.assign(periodoInicial(), { periodo: 'mes' });
 
@@ -627,8 +634,9 @@ function estadoFijo(f) {
   const ym = mesDe(hoyISO());
   if (!f.activo) return '<span class="etiqueta pausa">En pausa</span>';
   if (datos.generados[`${f.id}|${ym}`]) {
-    const mov = datos.movs.find(m => m.fijoId === f.id && mesDe(m.fecha) === ym);
-    if (mov && mov.pendiente) return '<span class="etiqueta pen">Pendiente</span>';
+    const mov = movDeFijo(f, ym);
+    if (!mov) return '<span class="etiqueta pausa">Cancelado</span>';
+    if (mov.pendiente) return '<span class="etiqueta pen">Pendiente</span>';
     return '<span class="etiqueta ok">Confirmado</span>';
   }
   return '<span class="etiqueta prog">Programado</span>';
@@ -646,8 +654,8 @@ function pintarFijos() {
     const total = fs.filter(f => f.activo).reduce((s, f) => s + f.monto, 0);
     return `<div class="dia-titulo"><span>${titulo}</span><span>${privado ? '' : dinero(total) + ' / mes'}</span></div>
       <div class="card lista-card"><ul class="lista">${fs.map(f => {
-        const mov = datos.movs.find(m => m.fijoId === f.id && mesDe(m.fecha) === ym && m.pendiente);
-        const accion = mov ? `<button class="btn-confirmar" data-confirmar="${mov.id}">Confirmar</button>` : `<div class="valor ${tipo === 'ingreso' ? 'positivo' : ''}">${M(f.monto)}</div>`;
+        const mov = movDeFijo(f, ym); const movPend = mov && mov.pendiente ? mov : null;
+        const accion = movPend ? `<button class="btn-confirmar" data-confirmar="${movPend.id}">Confirmar</button>` : `<div class="valor ${tipo === 'ingreso' ? 'positivo' : ''}">${M(f.monto)}</div>`;
         return `<li class="item${f.activo ? '' : ' pendiente'}" data-fijo="${f.id}">
           ${catIco(f.tipo, f.cat)}
           <div class="info"><b>${esc(f.nombre)}${estadoFijo(f)}</b><small>Día ${f.dia} de cada mes · ${esc(f.cat)}</small></div>
@@ -920,7 +928,7 @@ function guardarMov() {
         const f = { id: nuevoId(), tipo, nombre: nota || cat, monto, cat, dia: Number(fecha.slice(8)), activo: true, desde: mesDe(fecha) };
         datos.fijos.push(f);
         datos.generados[`${f.id}|${mesDe(fecha)}`] = true;
-        mov.fijoId = f.id;
+        mov.fijoId = f.id; mov.fijoMes = mesDe(fecha);
         if (!nota) mov.nota = f.nombre;
       }
       datos.movs.push(mov);
@@ -941,17 +949,36 @@ function eliminarMov() {
   if (!transaccion(() => { datos.movs = datos.movs.filter(m => m.id !== id); })) return;
   cerrarHoja(); pintar(); aviso(pend ? 'Movimiento cancelado' : 'Movimiento eliminado');
 }
+// Confirmar un pendiente: el usuario elige la fecha real de pago o recepción (hoy por defecto, nunca futura).
+let confirmandoId = null;
 function confirmarMov(id) {
   const m = datos.movs.find(x => x.id === id);
   if (!m || !m.pendiente) return;
+  confirmandoId = id;
   const hoy = hoyISO();
-  let nuevaFecha = m.fecha;
-  if (m.fecha > hoy) {
-    if (!confirm(`Este movimiento está programado para el ${fechaMedia(m.fecha)}. ¿Confirmarlo como realizado hoy, ${fechaMedia(hoy)}?`)) return;
-    nuevaFecha = hoy;
-  }
-  if (!transaccion(() => { const x = datos.movs.find(y => y.id === id); delete x.pendiente; x.fecha = nuevaFecha; })) return;
-  pintar(); aviso('Movimiento confirmado');
+  $('confDetalle').textContent = `${m.tipo === 'ingreso' ? 'Ingreso' : 'Gasto'} de ${M(m.monto)} · ${m.cat}${m.nota && m.nota !== m.cat ? ' · ' + m.nota : ''}. ` +
+    (m.fecha > hoy ? `Programado para el ${fechaMedia(m.fecha)}.` : `Fecha prevista: ${fechaMedia(m.fecha)}.`);
+  $('confFecha').max = hoy;
+  $('confFecha').value = hoy;
+  avisoConfirmar();
+  abrirHoja('hojaConfirmar');
+}
+function avisoConfirmar() {
+  const f = $('confFecha').value, hoy = hoyISO();
+  const ini = datos.saldoInicial;
+  let txt = 'Se registrará como realizado y afectará el saldo disponible desde esta fecha.';
+  if (esFecha(f) && f > hoy) txt = 'La fecha real no puede ser posterior a hoy. Para cambiar la fecha prevista, use Reprogramar.';
+  else if (esFecha(f) && ini && f < ini.fecha) txt = `Esta fecha es anterior al saldo inicial (${fechaMedia(ini.fecha)}); el movimiento aparecerá en el historial, pero no modificará el saldo disponible.`;
+  $('confAviso').textContent = txt;
+}
+function guardarConfirmacion() {
+  const id = confirmandoId;
+  const f = $('confFecha').value;
+  if (!esFecha(f)) return aviso('Seleccione una fecha válida.');
+  if (f > hoyISO()) return aviso('La fecha real no puede ser posterior a hoy.');
+  if (!transaccion(() => { const x = datos.movs.find(y => y.id === id); if (!x) throw new Error('Movimiento no encontrado'); delete x.pendiente; x.fecha = f; })) return;
+  confirmandoId = null;
+  cerrarHoja(); pintar(); aviso(`Movimiento confirmado el ${fechaMedia(f)}`);
 }
 
 // Recurrente
@@ -1002,7 +1029,7 @@ function eliminarFijo() {
   const id = editandoFijo.id;
   const ok = transaccion(() => {
     datos.fijos = datos.fijos.filter(f => f.id !== id);
-    datos.movs.forEach(m => { if (m.fijoId === id) delete m.fijoId; });
+    datos.movs.forEach(m => { if (m.fijoId === id) { delete m.fijoId; delete m.fijoMes; } });
   });
   if (!ok) return;
   cerrarHoja(); pintar(); aviso('Recurrente eliminado');
@@ -1443,6 +1470,8 @@ async function generarExcel(o) {
           { v: g > lim ? 'Excedido' : g >= lim * .8 ? 'En alerta (80 %)' : 'Dentro del límite', s: S.texto }]);
       });
     }
+    rPre.push([]);
+    rPre.push([{ v: 'Nota: todos los meses se comparan con los límites vigentes hoy. La aplicación aún no guarda un historial de presupuestos por mes, por lo que un mes anterior no refleja el límite que tenía en ese momento.', s: S.textoTenue }]);
   } else rPre.push([{ v: 'No hay presupuestos definidos. Configúrelos en Ajustes > Presupuestos mensuales.', s: S.textoTenue }]);
 
   // 6. Recurrentes
@@ -1451,8 +1480,9 @@ async function generarExcel(o) {
   const iniRec = rRec.length + 1;
   const ymHoy = mesDe(hoy);
   datos.fijos.slice().sort((a, b) => a.tipo.localeCompare(b.tipo) || a.dia - b.dia).forEach(f => {
-    const mov = datos.movs.find(m => m.fijoId === f.id && mesDe(m.fecha) === ymHoy);
-    const estMes = !f.activo ? 'En pausa' : datos.generados[`${f.id}|${ymHoy}`] ? (mov && mov.pendiente ? 'Pendiente de confirmación' : 'Confirmado') : 'Programado';
+    const mov = movDeFijo(f, ymHoy);
+    const estMes = !f.activo ? 'En pausa' : !datos.generados[`${f.id}|${ymHoy}`] ? 'Programado'
+      : !mov ? 'Cancelado en el mes' : mov.pendiente ? 'Pendiente de confirmación' : 'Confirmado';
     rRec.push([{ v: f.nombre, s: S.texto }, { v: f.tipo === 'ingreso' ? 'Ingreso' : 'Gasto', s: S.texto }, { v: f.cat, s: S.texto }, { v: f.dia, s: S.entero },
       { v: f.monto, s: S.moneda }, { v: f.activo ? 'Activo' : 'En pausa', s: S.texto }, { v: esMes(f.desde) ? mayus(nombreMes(f.desde)) : '', s: S.texto }, { v: estMes, s: S.texto }]);
   });
@@ -1503,7 +1533,8 @@ function validarCopia(obj) {
   if (fuente.movs.length > 500000) throw new Error('La copia supera el tamaño admitido.');
   if (Number(obj.formato) > VERSION_DATOS) throw new Error('La copia proviene de una versión más reciente de la aplicación. Actualice la app antes de restaurarla.');
   const texto = v => typeof v === 'string' ? v : (typeof v === 'number' ? String(v) : '');
-  let descartados = 0;
+  let descartados = 0, futurosCorregidos = 0;
+  const hoy = hoyISO();
 
   const fijos = [], idsFijos = new Set();
   for (const f of Array.isArray(fuente.fijos) ? fuente.fijos : []) {
@@ -1528,8 +1559,9 @@ function validarCopia(obj) {
     if (ids.has(id)) id = nuevoId();
     ids.add(id);
     const mov = { id, tipo: m.tipo, monto, cat: texto(m.cat).trim().replace(/\|/g, '').slice(0, 24) || 'Otros', fecha: m.fecha, nota: texto(m.nota).slice(0, 200) };
-    if (typeof m.fijoId === 'string' && idsFijos.has(m.fijoId)) mov.fijoId = m.fijoId;
+    if (typeof m.fijoId === 'string' && idsFijos.has(m.fijoId)) { mov.fijoId = m.fijoId; if (esMes(m.fijoMes)) mov.fijoMes = m.fijoMes; }
     if (m.pendiente === true) mov.pendiente = true;
+    else if (m.fecha > hoy) { mov.pendiente = true; futurosCorregidos++; } // una fecha futura nunca queda confirmada
     movs.push(mov);
   }
   if (fuente.movs.length && !movs.length) throw new Error('Ningún movimiento de la copia es válido.');
@@ -1549,7 +1581,7 @@ function validarCopia(obj) {
   if (fuente.saldoInicial && !validarSaldoInicial(fuente.saldoInicial)) descartados++;
   const d = normalizar({ version: Number(fuente.version) || 1, movs, fijos, generados, presupuestos, ajustes, categorias: fuente.categorias, saldoInicial: fuente.saldoInicial });
   const fechas = movs.map(m => m.fecha).sort();
-  return { datos: d, descartados, desde: fechas[0], hasta: fechas[fechas.length - 1], exportado: typeof obj.exportado === 'string' ? obj.exportado.slice(0, 10) : '' };
+  return { datos: d, descartados, futurosCorregidos, desde: fechas[0], hasta: fechas[fechas.length - 1], exportado: typeof obj.exportado === 'string' ? obj.exportado.slice(0, 10) : '' };
 }
 function leerRespaldoAuto() {
   try { const r = JSON.parse(localStorage.getItem(CLAVE_RESPALDO) || 'null'); return r && r.datos && typeof r.fecha === 'string' ? r : null; } catch (e) { return null; }
@@ -1569,10 +1601,11 @@ function importar(file) {
       `• ${d.fijos.length} recurrentes`,
       d.saldoInicial ? `• Saldo inicial de ${dinero(d.saldoInicial.monto)} al ${fechaMedia(d.saldoInicial.fecha)}` : '• Sin saldo inicial',
       r.descartados ? `• ${r.descartados} registros dañados se omitirán` : '',
+      r.futurosCorregidos ? `• ${r.futurosCorregidos} movimiento${r.futurosCorregidos > 1 ? 's' : ''} con fecha futura quedará${r.futurosCorregidos > 1 ? 'n' : ''} como programado${r.futurosCorregidos > 1 ? 's' : ''}, sin afectar el saldo` : '',
       '',
       `Se reemplazarán los ${datos.movs.length} movimientos actuales. Se guardará un respaldo automático para poder deshacer la restauración.`,
       '¿Desea continuar?'
-    ].filter((l, i) => l || i === 5);
+    ].filter((l, i) => l || i === 6);
     if (!confirm(lineas.join('\n'))) return;
     try { localStorage.setItem(CLAVE_RESPALDO, JSON.stringify({ fecha: new Date().toISOString(), datos })); }
     catch (e) { if (!confirm('No hay espacio para guardar el respaldo automático. ¿Restaurar de todas formas?')) return; }
@@ -1666,6 +1699,8 @@ function iniciar() {
   $('btnDefinirSaldo').onclick = abrirSaldo;
   $('btnSaldoInicial').onclick = abrirSaldo;
   $('saldoFecha').addEventListener('change', avisoSaldo);
+  $('confFecha').addEventListener('change', avisoConfirmar);
+  $('confGuardar').onclick = guardarConfirmacion;
   $('saldoGuardar').onclick = guardarSaldo;
   $('saldoEliminar').onclick = quitarSaldo;
   $('btnVerPendientes').onclick = () => {
@@ -1681,13 +1716,11 @@ function iniciar() {
     panelMov = b.dataset.panel; pintar();
   });
   $('buscar').addEventListener('input', e => {
-    const antes = !!filtro.q.trim();
+    // La búsqueda respeta el periodo elegido; solo busca en todo el historial si el usuario lo marca.
     filtro.q = e.target.value;
-    // Al iniciar una búsqueda: si eligió un periodo distinto al mes, se respeta ese periodo.
-    if (!antes && filtro.q.trim() && !filtro.historialManual) filtro.historial = filtro.periodo === 'mes';
     pintar();
   });
-  $('buscarHistorial').onchange = e => { filtro.historial = e.target.checked; filtro.historialManual = true; pintar(); };
+  $('buscarHistorial').onchange = e => { filtro.historial = e.target.checked; pintar(); };
   $('btnFiltros').onclick = () => {
     const abierto = $('panelFiltros').hidden;
     $('panelFiltros').hidden = !abierto;

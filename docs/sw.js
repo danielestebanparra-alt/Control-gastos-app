@@ -1,9 +1,9 @@
 // Guarda la app en el celular para que abra sin internet.
 // Al publicar cambios, subir este número: así el celular descarta la copia anterior.
-const VERSION = 'finanzas-v1.1.0';
+const VERSION = 'finanzas-v1.1.1';
 const ARCHIVOS = [
-  './', 'index.html', 'styles.css?v=1.1.0', 'app.js?v=1.1.0', 'manifest.json',
-  'lib/lucide-icons.js?v=1.1.0', 'lib/xlsx-lite.js?v=1.1.0', 'lib/chart.min.js', 'lib/jspdf.min.js', 'lib/autotable.min.js',
+  './', 'index.html', 'styles.css?v=1.1.1', 'app.js?v=1.1.1', 'manifest.json',
+  'lib/lucide-icons.js?v=1.1.1', 'lib/xlsx-lite.js?v=1.1.1', 'lib/chart.min.js', 'lib/jspdf.min.js', 'lib/autotable.min.js',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'
 ];
 self.addEventListener('install', e => {

@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=1.1.0">
+  <link rel="stylesheet" href="styles.css?v=1.1.1">
 </head>
 <body>
   <header class="topbar">
@@ -94,7 +94,7 @@
           <input type="search" id="buscar" placeholder="Buscar por categoría, nota o valor" autocomplete="off" enterkeyhint="search">
           <button class="icon-btn sm" id="btnFiltros" aria-label="Mostrar filtros" aria-expanded="false"><i data-i="sliders-horizontal"></i><span class="punto-filtro" id="puntoFiltro" hidden></span></button>
         </div>
-        <label class="fila-check" id="filaHistorial" hidden><input type="checkbox" id="buscarHistorial" checked> Buscar en todo el historial (ignora el periodo)</label>
+        <label class="fila-check" id="filaHistorial" hidden><input type="checkbox" id="buscarHistorial"> Buscar en todo el historial (ignora el periodo)</label>
 
         <div class="filtros card" id="panelFiltros" hidden>
           <div class="filtro-grupo">
@@ -308,7 +308,7 @@
       </div>
       <p class="grupo-nota">La información se almacena únicamente en este dispositivo. Exporte una copia periódicamente y consérvela en un lugar seguro, por ejemplo iCloud Drive.</p>
 
-      <p class="version">Mis Finanzas · Versión 1.1</p>
+      <p class="version">Mis Finanzas · Versión 1.1.1</p>
     </section>
   </main>
 
@@ -410,6 +410,7 @@
     <div class="agarre"></div>
     <div class="hoja-cabeza"><h2 id="hojaPresTitulo">Presupuestos mensuales</h2><button class="cerrar" data-cerrar aria-label="Cerrar"><i data-i="x"></i></button></div>
     <p class="sub">Defina un límite mensual por categoría de gasto. Recibirá una alerta en el resumen al alcanzar el 80 %. Deje el campo vacío para no establecer límite.</p>
+    <p class="sub-xs">Los límites se aplican a todos los meses, incluidos los anteriores: mientras no exista un historial de presupuestos por mes, los meses pasados se evalúan con los límites actuales.</p>
     <div id="listaPresupuestos"></div>
   </div>
 
@@ -433,13 +434,25 @@
     </div>
   </div>
 
+  <!-- Hoja: confirmar movimiento pendiente -->
+  <div class="hoja" id="hojaConfirmar" role="dialog" aria-modal="true" aria-labelledby="hojaConfTitulo">
+    <div class="agarre"></div>
+    <div class="hoja-cabeza"><h2 id="hojaConfTitulo">Confirmar movimiento</h2><button class="cerrar" data-cerrar aria-label="Cerrar"><i data-i="x"></i></button></div>
+    <p class="sub" id="confDetalle"></p>
+    <label class="campo">Fecha real de pago o recepción<input type="date" id="confFecha"></label>
+    <p class="sub-xs" id="confAviso"></p>
+    <div class="acciones">
+      <button class="boton" id="confGuardar">Confirmar</button>
+    </div>
+  </div>
+
   <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
 
-  <script src="lib/lucide-icons.js?v=1.1.0"></script>
+  <script src="lib/lucide-icons.js?v=1.1.1"></script>
   <script src="lib/chart.min.js"></script>
   <script src="lib/jspdf.min.js"></script>
   <script src="lib/autotable.min.js"></script>
-  <script src="lib/xlsx-lite.js?v=1.1.0"></script>
-  <script src="app.js?v=1.1.0"></script>
+  <script src="lib/xlsx-lite.js?v=1.1.1"></script>
+  <script src="app.js?v=1.1.1"></script>
 </body>
 </html>
