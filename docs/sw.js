@@ -3,7 +3,7 @@
 const VERSION = 'finanzas-v1.1.0';
 const ARCHIVOS = [
   './', 'index.html', 'styles.css?v=1.1.0', 'app.js?v=1.1.0', 'manifest.json',
-  'lib/lucide-icons.js?v=1.1.0', 'lib/chart.min.js', 'lib/jspdf.min.js', 'lib/autotable.min.js',
+  'lib/lucide-icons.js?v=1.1.0', 'lib/xlsx-lite.js?v=1.1.0', 'lib/chart.min.js', 'lib/jspdf.min.js', 'lib/autotable.min.js',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'
 ];
 self.addEventListener('install', e => {

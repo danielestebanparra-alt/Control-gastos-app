@@ -34,29 +34,38 @@
     <section class="vista activa" id="vista-inicio">
       <div class="hero" id="balanceCard">
         <div class="hero-top">
-          <span class="hero-etiqueta" id="heroEtiqueta">Balance del periodo</span>
-          <span class="pill" id="estadoPill">—</span>
+          <span class="hero-etiqueta">Saldo disponible</span>
+          <span class="pill" id="saldoPill" hidden>Saldo negativo</span>
         </div>
-        <div class="hero-monto num" id="balanceMonto">$0</div>
-        <div class="hero-estado" id="estadoMes">—</div>
-        <div class="barra"><div class="barra-relleno" id="barraGasto"></div></div>
-        <div class="hero-barra-texto" id="barraTexto">—</div>
+        <div class="hero-monto num" id="saldoDisponible">$0</div>
+        <div class="hero-estado" id="saldoNota">—</div>
+        <button class="hero-link" id="btnDefinirSaldo" hidden><i data-i="wallet"></i>Definir saldo inicial</button>
         <div class="hero-cols">
-          <div><span class="hero-mini"><i data-i="arrow-down-left"></i>Ingresos</span><b class="num" id="totalIngresos">$0</b></div>
-          <div><span class="hero-mini"><i data-i="arrow-up-right"></i>Gastos</span><b class="num" id="totalGastos">$0</b></div>
+          <div><span class="hero-mini"><i data-i="trending-up"></i><span id="heroProyEt">Saldo proyectado</span></span><b class="num" id="saldoProyectadoHero">$0</b></div>
+          <div><span class="hero-mini"><i data-i="calendar-days"></i><span id="heroBalEt">Balance del mes</span></span><b class="num" id="balanceMonto">$0</b></div>
         </div>
+      </div>
+
+      <div class="card" id="mesCard">
+        <div class="card-cabeza"><h3 id="mesCardTitulo">—</h3><span class="pill-sm" id="estadoPill">—</span></div>
+        <dl class="desglose" id="mesDesglose"></dl>
+        <div class="barra claro"><div class="barra-relleno" id="barraGasto"></div></div>
+        <div class="sub-xs barra-nota" id="barraTexto">—</div>
+        <p class="sub-xs" id="estadoMes"></p>
       </div>
 
       <div class="card" id="proyeccionCard">
-        <div class="card-cabeza"><h3>Proyección al cierre del mes</h3><i data-i="trending-up" class="card-ico"></i></div>
+        <div class="card-cabeza"><h3 id="proyeccionTitulo">Saldo proyectado</h3><i data-i="trending-up" class="card-ico"></i></div>
         <div class="monto-md num" id="proyeccion">$0</div>
         <dl class="desglose" id="proyeccionDetalle"></dl>
+        <p class="sub-xs" style="margin:8px 0 0">El saldo proyectado incluye movimientos pendientes, programados y recurrentes por registrar. No modifica el saldo disponible.</p>
       </div>
 
       <div class="card" id="pendientesCard" hidden>
-        <div class="card-cabeza"><h3>Pendientes de confirmación</h3><span class="contador" id="pendientesCuenta">0</span></div>
-        <p class="sub">Movimientos recurrentes generados que aún no se han confirmado. No afectan el balance hasta confirmarlos.</p>
+        <div class="card-cabeza"><h3>Pendientes y programados</h3><span class="contador" id="pendientesCuenta">0</span></div>
+        <p class="sub">Movimientos con fecha futura o recurrentes sin confirmar. No afectan el saldo disponible hasta que se confirman.</p>
         <ul class="lista" id="pendientesLista"></ul>
+        <button class="link" id="btnVerPendientes" hidden>Ver todos los pendientes</button>
       </div>
 
       <div id="alertas"></div>
@@ -85,11 +94,12 @@
           <input type="search" id="buscar" placeholder="Buscar por categoría, nota o valor" autocomplete="off" enterkeyhint="search">
           <button class="icon-btn sm" id="btnFiltros" aria-label="Mostrar filtros" aria-expanded="false"><i data-i="sliders-horizontal"></i><span class="punto-filtro" id="puntoFiltro" hidden></span></button>
         </div>
-        <label class="fila-check" id="filaHistorial" hidden><input type="checkbox" id="buscarHistorial" checked> Buscar en todo el historial</label>
+        <label class="fila-check" id="filaHistorial" hidden><input type="checkbox" id="buscarHistorial" checked> Buscar en todo el historial (ignora el periodo)</label>
 
         <div class="filtros card" id="panelFiltros" hidden>
           <div class="filtro-grupo">
             <span class="filtro-titulo">Periodo</span>
+            <p class="sub-xs periodo-ignorado" id="periodoIgnorado" hidden>La búsqueda en todo el historial ignora el periodo. Desmarque esa opción para buscar solo dentro del periodo elegido.</p>
             <div class="chips scroll" id="chipsPeriodo">
               <button class="chip" data-p="mes">Mes</button>
               <button class="chip" data-p="quincena">Quincena</button>
@@ -113,8 +123,8 @@
             <label class="campo">Categoría<select id="filtroCat"></select></label>
             <label class="campo">Estado<select id="filtroEstado">
               <option value="">Todos</option>
-              <option value="confirmado">Confirmados</option>
-              <option value="pendiente">Pendientes</option>
+              <option value="confirmado">Realizados</option>
+              <option value="pendiente">Pendientes y programados</option>
             </select></label>
           </div>
           <button class="boton terciario" id="btnLimpiarFiltros"><i data-i="rotate-ccw"></i>Restablecer filtros</button>
@@ -172,8 +182,8 @@
         <ul class="lista compacta" id="topCategorias"></ul>
       </div>
       <div class="card">
-        <div class="card-cabeza"><h3>Saldo acumulado</h3><span class="sub-xs">Día a día</span></div>
-        <p class="sub">Los tramos bajo cero indican días en déficit.</p>
+        <div class="card-cabeza"><h3>Saldo disponible</h3><span class="sub-xs">Día a día</span></div>
+        <p class="sub" id="gSaldoNota">Los tramos bajo cero indican saldo negativo. La línea punteada corresponde al saldo proyectado.</p>
         <div class="grafica"><canvas id="gSaldo" aria-label="Saldo acumulado del mes" role="img"></canvas></div>
       </div>
     </section>
@@ -221,6 +231,16 @@
       </div>
       <p class="grupo-nota">Con los montos ocultos, los valores se reemplazan por puntos en todas las pantallas y gráficas. Toque el ícono del ojo para mostrarlos.</p>
 
+      <h4 class="grupo-titulo">Cuenta</h4>
+      <div class="grupo">
+        <button class="fila" id="btnSaldoInicial">
+          <span class="fila-ico"><i data-i="wallet"></i></span>
+          <span class="fila-texto">Saldo inicial<small id="saldoInicialInfo">Sin definir</small></span>
+          <i data-i="chevron-right" class="fila-flecha"></i>
+        </button>
+      </div>
+      <p class="grupo-nota">El saldo inicial es el dinero disponible en una fecha determinada. No se contabiliza como ingreso.</p>
+
       <h4 class="grupo-titulo">Organización</h4>
       <div class="grupo">
         <button class="fila" id="btnCategorias">
@@ -244,30 +264,25 @@
           <input type="checkbox" class="switch" id="confirmarRecurrentes">
         </label>
       </div>
-      <p class="grupo-nota">Si está activo, cada recurrente se registra como pendiente y solo cuenta en el balance cuando usted lo confirma.</p>
+      <p class="grupo-nota">Si está activo, cada recurrente se registra como pendiente y solo cuenta en el saldo y en el balance cuando usted lo confirma.</p>
 
       <h4 class="grupo-titulo">Reportes</h4>
       <div class="grupo">
         <div class="fila">
           <span class="fila-ico"><i data-i="file-text"></i></span>
-          <span class="fila-texto">Extracto en PDF</span>
+          <span class="fila-texto">Extracto en PDF y Excel</span>
         </div>
         <div class="fila-bloque">
-          <div class="chips scroll" id="pdfPresets">
-            <button class="chip" data-pp="mes">Mes consultado</button>
-            <button class="chip" data-pp="quincena">Quincena</button>
-            <button class="chip" data-pp="anio">Año</button>
-            <button class="chip" data-pp="filtros">Filtros actuales</button>
-            <button class="chip" data-pp="personalizado">Personalizado</button>
-          </div>
-          <div class="dos-campos">
-            <label class="campo">Desde<input type="date" id="pdfDesde"></label>
-            <label class="campo">Hasta<input type="date" id="pdfHasta"></label>
-          </div>
+          <div class="chips scroll" id="repChips"></div>
+          <div class="periodo-campos" id="repCampos"></div>
           <p class="sub-xs" id="pdfResumen"></p>
-          <button class="boton" id="btnPdf"><i data-i="download"></i>Generar extracto</button>
+          <div class="dos-campos">
+            <button class="boton" id="btnPdf"><i data-i="file-text"></i>PDF</button>
+            <button class="boton secundario" id="btnExcel"><i data-i="sheet"></i>Excel</button>
+          </div>
         </div>
       </div>
+      <p class="grupo-nota">El archivo de Excel incluye resumen financiero, movimientos, gastos por categoría, histórico mensual, presupuestos y recurrentes.</p>
 
       <h4 class="grupo-titulo">Datos y copia de seguridad</h4>
       <div class="grupo">
@@ -311,7 +326,7 @@
   <div class="hoja" id="hojaMov" role="dialog" aria-modal="true" aria-labelledby="hojaMovTitulo">
     <div class="agarre"></div>
     <div class="hoja-cabeza"><h2 id="hojaMovTitulo">Nuevo movimiento</h2><button class="cerrar" data-cerrar aria-label="Cerrar"><i data-i="x"></i></button></div>
-    <div class="estado-banner" id="movEstadoBanner" hidden><i data-i="hourglass"></i><span>Recurrente pendiente de confirmación</span></div>
+    <div class="estado-banner" id="movEstadoBanner" hidden><i data-i="hourglass"></i><span id="movEstadoTexto">Pendiente de confirmación</span></div>
     <div class="segmento" id="segTipo">
       <button data-tipo="gasto" class="activo">Gasto</button>
       <button data-tipo="ingreso">Ingreso</button>
@@ -327,9 +342,13 @@
     <label class="fila-switch" id="filaRepetir">Repetir cada mes
       <input type="checkbox" class="switch" id="movRepetir">
     </label>
+    <p class="sub-xs" id="movFuturoNota" hidden>La fecha es futura: el movimiento quedará programado y no afectará el saldo disponible hasta que lo confirme.</p>
+    <div class="acciones" id="movAccionesPend" hidden>
+      <button class="boton secundario" id="movReprogramar"><i data-i="calendar-clock"></i>Reprogramar</button>
+      <button class="boton secundario" id="movConfirmar"><i data-i="circle-check"></i>Confirmar</button>
+    </div>
     <div class="acciones">
       <button class="boton peligro" id="movEliminar" hidden>Eliminar</button>
-      <button class="boton secundario" id="movConfirmar" hidden><i data-i="circle-check"></i>Confirmar</button>
       <button class="boton" id="movGuardar">Guardar</button>
     </div>
   </div>
@@ -394,12 +413,33 @@
     <div id="listaPresupuestos"></div>
   </div>
 
+  <!-- Hoja: saldo inicial -->
+  <div class="hoja" id="hojaSaldo" role="dialog" aria-modal="true" aria-labelledby="hojaSaldoTitulo">
+    <div class="agarre"></div>
+    <div class="hoja-cabeza"><h2 id="hojaSaldoTitulo">Saldo inicial</h2><button class="cerrar" data-cerrar aria-label="Cerrar"><i data-i="x"></i></button></div>
+    <p class="sub">Registre el dinero disponible en sus cuentas al inicio de una fecha. Los movimientos realizados desde esa fecha se suman o restan a este valor. No se contabiliza como ingreso.</p>
+    <div class="segmento" id="segSigno">
+      <button data-tipo="pos" class="activo">Saldo positivo</button>
+      <button data-tipo="neg">Saldo negativo</button>
+    </div>
+    <div class="monto-grande">
+      <span>$</span><input id="saldoMonto" type="text" inputmode="numeric" placeholder="0" autocomplete="off" aria-label="Saldo inicial">
+    </div>
+    <label class="campo">Fecha del saldo<input type="date" id="saldoFecha"></label>
+    <p class="sub-xs" id="saldoAviso"></p>
+    <div class="acciones">
+      <button class="boton peligro" id="saldoEliminar" hidden>Quitar saldo inicial</button>
+      <button class="boton" id="saldoGuardar">Guardar</button>
+    </div>
+  </div>
+
   <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
 
   <script src="lib/lucide-icons.js?v=1.1.0"></script>
   <script src="lib/chart.min.js"></script>
   <script src="lib/jspdf.min.js"></script>
   <script src="lib/autotable.min.js"></script>
+  <script src="lib/xlsx-lite.js?v=1.1.0"></script>
   <script src="app.js?v=1.1.0"></script>
 </body>
 </html>

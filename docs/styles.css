@@ -420,3 +420,27 @@ div.fila { cursor: default; }
   .hero-monto { font-size: 32px; }
   .kpis b { font-size: 13.5px; }
 }
+
+/* ---------- 1.1: saldo, reportes y estados ---------- */
+.hero-link { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #fff; background: var(--hero-2); border-radius: 999px; padding: 6px 12px; margin: -4px 0 14px; }
+.hero-link .ico { width: 15px; height: 15px; }
+.hero .pill.negativo { background: #fde2e2; color: #9b1c1c; }
+.pill-sm { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--superficie-2); color: var(--texto-2); flex: none; }
+.pill-sm.deficit { background: rgba(198, 40, 40, .1); color: var(--negativo); }
+.pill-sm.superavit { background: var(--primario-suave); color: var(--primario); }
+.pill-sm.ajustado { background: rgba(180, 83, 9, .1); color: var(--alerta); }
+.desglose div.total { border-top: 1px solid var(--separador); padding-top: 7px; margin-top: 2px; }
+.desglose div.total dt { color: var(--texto); font-weight: 600; }
+.barra.claro { background: var(--superficie-2); margin-top: 14px; }
+.barra.claro .barra-relleno { background: var(--primario); }
+.barra.claro .barra-relleno.alto { background: var(--alerta); }
+.barra.claro .barra-relleno.excedido { background: var(--negativo); }
+.barra-nota { margin-top: 6px; }
+#estadoMes { margin: 4px 0 0; }
+#estadoMes:empty { display: none; }
+.periodo-ignorado { background: var(--superficie-2); border-radius: 10px; padding: 8px 10px; margin: 0; }
+.filtro-grupo.inactivo .chips, .filtro-grupo.inactivo .periodo-campos { opacity: .4; pointer-events: none; }
+.etiqueta.prog-fut { background: transparent; color: var(--primario); border: 1px solid currentColor; }
+#movAccionesPend { margin-top: 4px; }
+#btnVerPendientes { margin-top: 6px; }
+.aviso.error { background: var(--negativo); color: #fff; }
